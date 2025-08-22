@@ -1,11 +1,7 @@
 {
     "py/object": "pros.conductor.project.Project",
     "py/state": {
-<<<<<<< HEAD
-        "project_name": "2526PushBackB",
-=======
         "project_name": "2526PushBackB-recording",
->>>>>>> c3337db (re)
         "target": "v5",
         "templates": {
             "kernel": {
