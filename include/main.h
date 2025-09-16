@@ -71,6 +71,9 @@ Controller controller(CONTROLLER_MASTER);
 
 int32_t deadzone = 3;
 
+float speed = 0.5f;
+float currentSpeed = speed;
+
 /**
  * Prototypes for the competition control tasks are redefined here to ensure
  * that they can be called from user code (i.e. calling autonomous from a

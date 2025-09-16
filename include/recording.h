@@ -7,6 +7,7 @@
 #include <deque>
 
 #include "api.h"
+#include "pros/gps.hpp"
 
 using namespace std;
 using namespace chrono;
@@ -15,19 +16,21 @@ using namespace pros::c;
 
 #define DEBUG 0
 
-typedef struct //Controller data
-{
-    signed char axis[4];
-
-    signed char digital[12];
-} ControllerData;
-
 typedef struct
 {
     double positionX;
     double positionY;
     double heading;
 } PositionData;
+
+typedef struct //Controller data
+{
+    signed char axis[4];
+
+    signed char digital[12];
+
+    PositionData gpsData;
+} ControllerData;
 
 class virtual_controller_axis
 {
@@ -67,11 +70,15 @@ static ofstream recording_output_stream;
 static vector<ControllerData> recording_buffer;
 // the recording time of the current recording, in seconds
 static uint32_t max_recording_time;
+// a pointer to a GPS device currently being used for recording, or nullptr if there is none
+static Gps* recording_gps;
 
 // the virtual controller currently held by the playback
 static virtual_controller* playback_controller;
 // the currently unplayed data in the file
 static deque<ControllerData> playback_buffer;
+// does the current playback have GPS data to correct towards?
+static bool playback_has_gps;
 
 // Stop the recording or playback at the next process frame.
 static bool stop_system = false;

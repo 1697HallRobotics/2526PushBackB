@@ -1,8 +1,10 @@
 #include "main.h"
+#include "liblvgl/core/lv_obj_pos.h"
 #include "liblvgl/display/lv_display.h"
 #include "liblvgl/misc/lv_timer.h"
 #include "liblvgl/misc/lv_types.h"
 #include "liblvgl/widgets/image/lv_image.h"
+#include "pros/misc.h"
 #include "tenna_gif.h"
 
 static lv_obj_t* gif_img;
@@ -24,6 +26,8 @@ void initialize() {
 	init_tenna();
 
 	gif_img = lv_image_create(lv_screen_active());
+
+	lv_obj_center(gif_img);
 
 	lv_timer_create(update_gif, 200, nullptr);
 }
@@ -76,20 +80,28 @@ void opcontrol() {
 	while (true) {
 		int32_t turnPower = controller.get_analog(ANALOG_RIGHT_X);
 		int32_t rawForwardPower = controller.get_analog(ANALOG_LEFT_Y);
-		int32_t forwardPower = powf(rawForwardPower / 127.0f, 3) * 127;
+		int32_t forwardPower = powf(rawForwardPower * 0.00787401574, 2) * 127;
 
 		if (abs(turnPower) < deadzone) turnPower = 0;
 		if (abs(forwardPower) < deadzone) forwardPower = 0;
 
-		if (turnPower != 0 || forwardPower != 0)                                            	\
-		{                                                                                   	\
-			rightMotors.move((turnPower - forwardPower));
-			leftMotors.move((turnPower + forwardPower));
-		}                                                                                   	\
-		else                                                                                	\
-		{                                                                                   	\
-			rightMotors.brake();                                                            	\
-			leftMotors.brake();                                                             	\
+		if (controller.get_digital(E_CONTROLLER_DIGITAL_R1)) {
+			currentSpeed = speed * 2;
+		}
+		else 
+		{
+			currentSpeed = speed;
+		}
+
+		if (turnPower != 0 || forwardPower != 0)
+		{
+			rightMotors.move((turnPower - forwardPower) * currentSpeed);
+			leftMotors.move((turnPower + forwardPower) * currentSpeed);
+		}
+		else
+		{
+			rightMotors.brake();
+			leftMotors.brake();
 		}
 		
 		pros::delay(5);

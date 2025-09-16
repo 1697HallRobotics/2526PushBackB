@@ -1,4 +1,5 @@
 #include "recording.h"
+#include <cfloat>
 
 void start_recording(const string filename, uint8_t length, Gps* gps)
 {
@@ -35,11 +36,13 @@ void start_recording(const string filename, uint8_t length, Gps* gps)
 
     recording_output_stream.write((const char*)&length, sizeof(uint8_t));
 
+    recording_gps = gps;
+
     double gps_x, gps_y, gps_heading;
     if (gps == nullptr) {
-        gps_x = 0.0;
-        gps_y = 0.0;
-        gps_heading = 0.0;
+        gps_x = DBL_MAX;
+        gps_y = DBL_MAX;
+        gps_heading = DBL_MAX;
     } else {
         gps_x = gps->get_position_x();
         gps_y = gps->get_position_y();
@@ -57,13 +60,13 @@ void start_recording(const string filename, uint8_t length, Gps* gps)
 void capture_controller()
 {
     ControllerData data = {
-        {
+        .axis = {
         (int8_t) controller_get_analog (E_CONTROLLER_MASTER, E_CONTROLLER_ANALOG_RIGHT_X),
         (int8_t) controller_get_analog (E_CONTROLLER_MASTER, E_CONTROLLER_ANALOG_RIGHT_Y),
         (int8_t) controller_get_analog (E_CONTROLLER_MASTER, E_CONTROLLER_ANALOG_LEFT_Y),
         (int8_t) controller_get_analog (E_CONTROLLER_MASTER, E_CONTROLLER_ANALOG_LEFT_X)
         },
-        {
+        .digital = {
         (int8_t) controller_get_digital(E_CONTROLLER_MASTER, E_CONTROLLER_DIGITAL_A),
         (int8_t) controller_get_digital(E_CONTROLLER_MASTER, E_CONTROLLER_DIGITAL_B),
         (int8_t) controller_get_digital(E_CONTROLLER_MASTER, E_CONTROLLER_DIGITAL_X),
@@ -76,6 +79,11 @@ void capture_controller()
         (int8_t) controller_get_digital(E_CONTROLLER_MASTER, E_CONTROLLER_DIGITAL_L2),
         (int8_t) controller_get_digital(E_CONTROLLER_MASTER, E_CONTROLLER_DIGITAL_R1),
         (int8_t) controller_get_digital(E_CONTROLLER_MASTER, E_CONTROLLER_DIGITAL_R2)
+        },
+        .gpsData = {
+            .positionX = recording_gps == nullptr ? recording_gps->get_position_x() : DBL_MAX,
+            .positionY = recording_gps == nullptr ? recording_gps->get_position_y() : DBL_MAX,
+            .heading = recording_gps == nullptr ? recording_gps->get_heading() : DBL_MAX,
         }
     };
 
@@ -87,15 +95,20 @@ void flush_recording_buffer()
     for (size_t i = 0; i < recording_buffer.size(); i++)
     {
         ControllerData capture = recording_buffer[i];
+
+        // write analog data
         for (size_t i = 0; i < 4; i++)
         {
             recording_output_stream.write((const char*)&capture.axis[i], sizeof(char));
         }
 
+        // write controller data
         for (size_t i = 0; i < 12; i++)
         {
             recording_output_stream.write((const char*)&capture.digital[i], sizeof(char));
         }
+
+        
     }
 
     recording_output_stream.flush();
@@ -234,8 +247,8 @@ virtual_controller *begin_playback(string filename)
         stream.read(raw, 16*sizeof(char));
         // convert raw data into the ControllerData struct
         ControllerData data = {
-            {(signed char)raw[0], (signed char)raw[1], (signed char)raw[2], (signed char)raw[3]},
-            {(signed char)raw[4], (signed char)raw[5], (signed char)raw[6], (signed char)raw[7], (signed char)raw[8], (signed char)raw[9], (signed char)raw[10], (signed char)raw[11], (signed char)raw[12], (signed char)raw[13], (signed char)raw[14], (signed char)raw[15]}
+            .axis={(signed char)raw[0], (signed char)raw[1], (signed char)raw[2], (signed char)raw[3]},
+            .digital={(signed char)raw[4], (signed char)raw[5], (signed char)raw[6], (signed char)raw[7], (signed char)raw[8], (signed char)raw[9], (signed char)raw[10], (signed char)raw[11], (signed char)raw[12], (signed char)raw[13], (signed char)raw[14], (signed char)raw[15]},
         };
 
         // put the structured data into the playback buffer to be used by the playback thread
