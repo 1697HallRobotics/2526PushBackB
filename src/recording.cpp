@@ -1,5 +1,7 @@
 #include "recording.h"
 #include <cfloat>
+#include <cstdlib>
+#include <cstring>
 
 void start_recording(const string filename, uint8_t length, Gps* gps)
 {
@@ -81,7 +83,7 @@ void capture_controller()
         (int8_t) controller_get_digital(E_CONTROLLER_MASTER, E_CONTROLLER_DIGITAL_R2)
         },
         .gpsData = {
-            .positionX = recording_gps == nullptr ? recording_gps->get_position_x() : DBL_MAX,
+            .positionX = recording_gps == nullptr ? recording_gps->get_position_x() : FLT_MAX,
             .positionY = recording_gps == nullptr ? recording_gps->get_position_y() : DBL_MAX,
             .heading = recording_gps == nullptr ? recording_gps->get_heading() : DBL_MAX,
         }
@@ -108,7 +110,11 @@ void flush_recording_buffer()
             recording_output_stream.write((const char*)&capture.digital[i], sizeof(char));
         }
 
-        
+        recording_output_stream.write((const char*)&(capture.gpsData.positionX), sizeof(double));
+
+        recording_output_stream.write((const char*)&(capture.gpsData.positionY), sizeof(double));
+
+        recording_output_stream.write((const char*)&(capture.gpsData.heading), sizeof(double));
     }
 
     recording_output_stream.flush();
@@ -242,13 +248,23 @@ virtual_controller *begin_playback(string filename)
     while (!stream.eof())
     {
         // allocate 16 bytes for the data
-        char *raw = new char[16];
+        char raw[16];
         // read 16 bytes of data into the array from the input stream
         stream.read(raw, 16*sizeof(char));
+
+        // read extra bytes from the gps
+        double gpsRaw[3];
+        stream.read((char*)&posX, 3*sizeof(double));
+
         // convert raw data into the ControllerData struct
         ControllerData data = {
             .axis={(signed char)raw[0], (signed char)raw[1], (signed char)raw[2], (signed char)raw[3]},
             .digital={(signed char)raw[4], (signed char)raw[5], (signed char)raw[6], (signed char)raw[7], (signed char)raw[8], (signed char)raw[9], (signed char)raw[10], (signed char)raw[11], (signed char)raw[12], (signed char)raw[13], (signed char)raw[14], (signed char)raw[15]},
+            .gpsData = {
+                .positionX = gpsRaw[0],
+                .positionY = gpsRaw[1],
+                .heading = gpsRaw[2],
+            }
         };
 
         // put the structured data into the playback buffer to be used by the playback thread
