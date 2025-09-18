@@ -18,9 +18,9 @@ using namespace pros::c;
 
 typedef struct
 {
-    double positionX;
-    double positionY;
-    double heading;
+    float positionX;
+    float positionY;
+    float heading;
 } PositionData;
 
 typedef struct //Controller data
@@ -100,6 +100,11 @@ void recording_thread(void* param);
  * @brief Immediately end the recording and clean it up.
  */
 void stop_recording();
+/**
+ * @brief Helper function to easily obtain the GPS data into a `PositionData` struct.
+ * @return A `PositionData` struct containing the GPS X, Y and heading.
+ */
+ PositionData get_gps_position_data(Gps* gps);
 
 /**
  * @brief Get the position data of a recording system.

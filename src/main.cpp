@@ -63,6 +63,10 @@ void competition_initialize() {}
  */
 void autonomous() {}
 
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
 /**
  * Runs the operator control code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -80,7 +84,7 @@ void opcontrol() {
 	while (true) {
 		int32_t turnPower = controller.get_analog(ANALOG_RIGHT_X);
 		int32_t rawForwardPower = controller.get_analog(ANALOG_LEFT_Y);
-		int32_t forwardPower = powf(rawForwardPower * 0.00787401574, 2) * 127;
+		int32_t forwardPower = powf(rawForwardPower * 0.00787401574, 2) * 127 * sgn(rawForwardPower);
 
 		if (abs(turnPower) < deadzone) turnPower = 0;
 		if (abs(forwardPower) < deadzone) forwardPower = 0;

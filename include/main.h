@@ -54,10 +54,10 @@ using namespace std;
 //using namespace pros::literals;
 // using namespace okapi;
 
-const int8_t leftBackMotorPort = 1;
-const int8_t leftFrontMotorPort = 2;
-const int8_t rightBackMotorPort = 3;
-const int8_t rightFrontMotorPort = 4;
+const int8_t leftBackMotorPort = -1;
+const int8_t leftFrontMotorPort = -2;
+const int8_t rightBackMotorPort = -3;
+const int8_t rightFrontMotorPort = -4;
 
 Motor leftBackMotor     (leftBackMotorPort);
 Motor leftFrontMotor    (leftFrontMotorPort);

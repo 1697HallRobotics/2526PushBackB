@@ -40,23 +40,24 @@ void start_recording(const string filename, uint8_t length, Gps* gps)
 
     recording_gps = gps;
 
-    double gps_x, gps_y, gps_heading;
-    if (gps == nullptr) {
-        gps_x = DBL_MAX;
-        gps_y = DBL_MAX;
-        gps_heading = DBL_MAX;
-    } else {
-        gps_x = gps->get_position_x();
-        gps_y = gps->get_position_y();
-        gps_heading = gps->get_heading();
-    }
-    recording_output_stream.write((const char *)&gps_x, sizeof(double));
-    recording_output_stream.write((const char *)&gps_y, sizeof(double));
-    recording_output_stream.write((const char *)&gps_heading, sizeof(double));
+    float gps_x, gps_y, gps_heading;
+    PositionData gpsData = get_gps_position_data(gps);
+    recording_output_stream.write((const char*)&(gpsData.positionX), sizeof(float));
+    recording_output_stream.write((const char*)&(gpsData.positionY), sizeof(float));
+    recording_output_stream.write((const char*)&(gpsData.heading), sizeof(float));
     
     stop_system = false;
 
     rtos::Task recording_task(recording_thread, nullptr, TASK_PRIORITY_MAX);
+}
+
+PositionData get_gps_position_data(Gps *gps)
+{
+    return {
+        .positionX = recording_gps == nullptr ? (float)recording_gps->get_position_x() : FLT_MAX,
+        .positionY = recording_gps == nullptr ? (float)recording_gps->get_position_y() : FLT_MAX,
+        .heading = recording_gps == nullptr ? (float)recording_gps->get_heading() : FLT_MAX
+    };
 }
 
 void capture_controller()
@@ -82,11 +83,8 @@ void capture_controller()
         (int8_t) controller_get_digital(E_CONTROLLER_MASTER, E_CONTROLLER_DIGITAL_R1),
         (int8_t) controller_get_digital(E_CONTROLLER_MASTER, E_CONTROLLER_DIGITAL_R2)
         },
-        .gpsData = {
-            .positionX = recording_gps == nullptr ? recording_gps->get_position_x() : FLT_MAX,
-            .positionY = recording_gps == nullptr ? recording_gps->get_position_y() : DBL_MAX,
-            .heading = recording_gps == nullptr ? recording_gps->get_heading() : DBL_MAX,
-        }
+        // this line of code sponsored by tipchr jpmocky
+        .gpsData = get_gps_position_data(recording_gps)
     };
 
     recording_buffer.push_back(data);
@@ -110,11 +108,9 @@ void flush_recording_buffer()
             recording_output_stream.write((const char*)&capture.digital[i], sizeof(char));
         }
 
-        recording_output_stream.write((const char*)&(capture.gpsData.positionX), sizeof(double));
-
-        recording_output_stream.write((const char*)&(capture.gpsData.positionY), sizeof(double));
-
-        recording_output_stream.write((const char*)&(capture.gpsData.heading), sizeof(double));
+        recording_output_stream.write((const char*)&(capture.gpsData.positionX), sizeof(float));
+        recording_output_stream.write((const char*)&(capture.gpsData.positionY), sizeof(float));
+        recording_output_stream.write((const char*)&(capture.gpsData.heading), sizeof(float));
     }
 
     recording_output_stream.flush();
@@ -198,10 +194,10 @@ PositionData get_position(string filename)
     char lengthData;
     stream.read(&lengthData, sizeof(char));
     
-    double posX, posY, heading;
-    stream.read((char*)&posX, sizeof(double));
-    stream.read((char*)&posY, sizeof(double));
-    stream.read((char*)&heading, sizeof(double));
+    float posX, posY, heading;
+    stream.read((char*)&posX, sizeof(float));
+    stream.read((char*)&posY, sizeof(float));
+    stream.read((char*)&heading, sizeof(float));
 
     stream.close();
 
@@ -237,10 +233,10 @@ virtual_controller *begin_playback(string filename)
     stream.read(&lengthData, sizeof(char));
 
     // read GPS position data taken at the beginning of the recording
-    double posX, posY, heading;
-    stream.read((char*)&posX, sizeof(double));
-    stream.read((char*)&posY, sizeof(double));
-    stream.read((char*)&heading, sizeof(double));
+    float posX, posY, heading;
+    stream.read((char*)&posX, sizeof(float));
+    stream.read((char*)&posY, sizeof(float));
+    stream.read((char*)&heading, sizeof(float));
     
     unsigned char recording_length = lengthData;
 
@@ -253,8 +249,8 @@ virtual_controller *begin_playback(string filename)
         stream.read(raw, 16*sizeof(char));
 
         // read extra bytes from the gps
-        double gpsRaw[3];
-        stream.read((char*)&posX, 3*sizeof(double));
+        float gpsRaw[3];
+        stream.read((char*)&posX, 3*sizeof(float));
 
         // convert raw data into the ControllerData struct
         ControllerData data = {
