@@ -17,6 +17,46 @@ void update_gif(lv_timer_t* timer) {
 	lv_obj_invalidate(gif_img);
 }
 
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
+// The primary drive code of the robot. This function does not return.
+// A template type is used in order to facilitate the `virtual_controller` type provided by the recording system.
+template<typename T> void drive(T controller) {
+	while (true) {
+		int32_t turnPower = controller.get_analog(ANALOG_RIGHT_X);
+		int32_t rawForwardPower = controller.get_analog(ANALOG_LEFT_Y);
+		// create an exponential easing curve rather than a default linear curve
+		// 0.00787401574 is 1/127: we convert it to a domain of [-1, 1] so the exponentiation creates the curve properly
+		// sgn call returns the sign of the original -- ensures it is preserved after exponentiation
+		int32_t forwardPower = powf(rawForwardPower * 0.00787401574, 2) * 127 * sgn(rawForwardPower);
+
+		// add deadzone to controller analogs
+		if (abs(turnPower) < deadzone) turnPower = 0;
+		if (abs(forwardPower) < deadzone) forwardPower = 0;
+
+		// make robot go faster if right bumper is pressed, allows for faster movements.
+		if (controller.get_digital(E_CONTROLLER_DIGITAL_R1)) currentSpeed = speed * speedMultiplier;
+		// ditto, but slower for the left bumper: higher precision.
+		else if (controller.get_digital(E_CONTROLLER_DIGITAL_L1)) currentSpeed = speed / speedMultiplier;
+		else currentSpeed = speed;
+
+		if (turnPower != 0 || forwardPower != 0)
+		{
+			rightMotors.move((turnPower - forwardPower) * currentSpeed);
+			leftMotors.move((turnPower + forwardPower) * currentSpeed);
+		}
+		else
+		{
+			rightMotors.brake();
+			leftMotors.brake();
+		}
+		
+		pros::delay(5);
+	}
+}
+
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -71,46 +111,8 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
-
-template <typename T> int sgn(T val) {
-    return (T(0) < val) - (val < T(0));
-}
-
-// The primary drive code of the robot. This function does not return.
-// A template type is used in order to facilitate the `virtual_controller` type provided by the recording system.
-template<typename T> void drive(T controller) {
-	while (true) {
-		int32_t turnPower = controller.get_analog(ANALOG_RIGHT_X);
-		int32_t rawForwardPower = controller.get_analog(ANALOG_LEFT_Y);
-		// create an exponential easing curve rather than a default linear curve
-		// 0.00787401574 is 1/127: we convert it to a domain of [-1, 1] so the exponentiation creates the curve properly
-		// sgn call returns the sign of the original -- ensures it is preserved after exponentiation
-		int32_t forwardPower = powf(rawForwardPower * 0.00787401574, 2) * 127 * sgn(rawForwardPower);
-
-		// add deadzone to controller analogs
-		if (abs(turnPower) < deadzone) turnPower = 0;
-		if (abs(forwardPower) < deadzone) forwardPower = 0;
-
-		// make robot go faster if right bumper is pressed, allows for faster movements.
-		if (controller.get_digital(E_CONTROLLER_DIGITAL_R1)) currentSpeed = speed * speedMultiplier;
-		// ditto, but slower for the left bumper: higher precision.
-		else if (controller.get_digital(E_CONTROLLER_DIGITAL_L1)) currentSpeed = speed / speedMultiplier;
-		else currentSpeed = speed;
-
-		if (turnPower != 0 || forwardPower != 0)
-		{
-			rightMotors.move((turnPower - forwardPower) * currentSpeed);
-			leftMotors.move((turnPower + forwardPower) * currentSpeed);
-		}
-		else
-		{
-			rightMotors.brake();
-			leftMotors.brake();
-		}
-		
-		pros::delay(5);
-	}
+void autonomous() {
+	
 }
 
 /**
