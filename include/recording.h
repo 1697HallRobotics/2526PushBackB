@@ -7,7 +7,6 @@
 #include <deque>
 
 #include "api.h"
-#include "pros/gps.hpp"
 
 using namespace std;
 using namespace chrono;
@@ -52,7 +51,7 @@ public:
 class virtual_controller
 {
 public:
-    // this provides support for both vexcode and pros implementations
+    // this provides support for both VEXcode and PROS implementations
     virtual_controller_digital PrevButtonA, PrevButtonB, PrevButtonX, PrevButtonY, PrevButtonUp, PrevButtonDown, PrevButtonLeft, PrevButtonRight, PrevButtonL1, PrevButtonL2, PrevButtonR1, PrevButtonR2;
 
     virtual_controller_axis Axis1, Axis2, Axis3, Axis4;
@@ -77,8 +76,10 @@ static Gps* recording_gps;
 static virtual_controller* playback_controller;
 // the currently unplayed data in the file
 static deque<ControllerData> playback_buffer;
-// does the current playback have GPS data to correct towards?
-static bool playback_has_gps;
+// the GPS sensor used by the playback thread to correct towards.
+static Gps* playback_gps;
+// the controller axes to correct.
+static int playback_forward_axis = -1, playback_turn_axis = -1;
 
 // Stop the recording or playback at the next process frame.
 static bool stop_system = false;
@@ -113,15 +114,16 @@ void stop_recording();
 PositionData get_position(string filename);
 
 /**
- * @brief Begin the playback.
+ * @brief Begin the playback without correction.
  * @return An pointer to the virtual controller, being updated in real time in accordance to the playback timing.
  */
 virtual_controller* begin_playback(string filename);
 /**
- * @brief The playback thread of the recording system. Typically used by the `begin_playback` method.
- * @param param An argument required by the PROS RTOS task. Unused, just pass `nullptr` into it.
+ * @brief Begin the playback.
+ * @return An pointer to the virtual controller, being updated in real time in accordance to the playback timing.
  */
-void playback_thread(void* param);
+virtual_controller* begin_playback(string filename, int forwardAxis, int turnAxis, Gps* playbackGps);
+
 /**
  * @brief Immediately end the playback and clean it up.
  */

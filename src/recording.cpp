@@ -1,7 +1,10 @@
 #include "recording.h"
 #include <cfloat>
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 void start_recording(const string filename, uint8_t length, Gps* gps)
 {
@@ -204,7 +207,61 @@ PositionData get_position(string filename)
     return (PositionData){posX, posY, heading};
 }
 
+// This function is not exposed via the header: this should only be called here.
+void playback_thread(void *param)
+{
+    uint8_t playbackDelay = 5; // 5ms per capture
+    uint32_t beginFrame = millis();    
+
+    while (1)
+    {
+        if (playback_buffer.size() == 0 || stop_system) break;
+
+        // copy the previous controller state for get_digital_get_new_press
+        playback_controller->copy_old();
+
+        // Update the virtual controller to the current controller capture
+        ControllerData data = playback_buffer[0];
+        playback_buffer.pop_front();
+
+        // get difference from current gps position to recorded GPS position
+        PositionData currentData = get_gps_position_data(playback_gps);
+        PositionData oldData = data.gpsData;
+
+        // update controller state
+        playback_controller->Axis1.position_value = (signed int)data.axis[0];
+        playback_controller->Axis2.position_value = (signed int)data.axis[1];
+        playback_controller->Axis3.position_value = (signed int)data.axis[2];
+        playback_controller->Axis4.position_value = (signed int)data.axis[3];
+        playback_controller->ButtonA.pressing_value = (signed int)data.digital[0];
+        playback_controller->ButtonB.pressing_value = (signed int)data.digital[1];
+        playback_controller->ButtonX.pressing_value = (signed int)data.digital[2];
+        playback_controller->ButtonY.pressing_value = (signed int)data.digital[3];
+        playback_controller->ButtonUp.pressing_value = (signed int)data.digital[4];
+        playback_controller->ButtonRight.pressing_value = (signed int)data.digital[5];
+        playback_controller->ButtonDown.pressing_value = (signed int)data.digital[6];
+        playback_controller->ButtonLeft.pressing_value = (signed int)data.digital[7];
+        playback_controller->ButtonL1.pressing_value = (signed int)data.digital[8];
+        playback_controller->ButtonL2.pressing_value = (signed int)data.digital[9];
+        playback_controller->ButtonR1.pressing_value = (signed int)data.digital[10];
+        playback_controller->ButtonR2.pressing_value = (signed int)data.digital[11];
+
+        // wait 5ms, accounting for execution delay (although if that is >1-2ms we might have a problem)
+        task_delay_until(&beginFrame, playbackDelay);
+
+        // update starting frame for delay
+        beginFrame = millis();
+    }
+
+    stop_playback();
+}
+
 virtual_controller *begin_playback(string filename)
+{
+    return begin_playback(filename, 0, 0, nullptr);
+}
+
+virtual_controller *begin_playback(string filename, bool correctPath, int forwardAxis, int turnAxis, Gps* playbackGps)
 {
     // ensure we have something to read the data from
     if (!usd::is_installed())
@@ -269,53 +326,13 @@ virtual_controller *begin_playback(string filename)
 
     stop_system = false;
 
+    playback_gps = playbackGps;
+    playback_forward_axis = forwardAxis;
+    playback_turn_axis = turnAxis;
+
     rtos::Task playback_task(playback_thread, nullptr, TASK_PRIORITY_MAX);
 
     return playback_controller;
-}
-
-void playback_thread(void *param)
-{
-    uint8_t playbackDelay = 5; // 5ms per capture
-    uint32_t beginFrame = millis();
-
-    while (1)
-    {
-        if (playback_buffer.size() == 0 || stop_system) break;
-
-        // copy the previous controller state for get_digital_get_new_press
-        playback_controller->copy_old();
-
-        // Update the virtual controller to the current controller capture
-        ControllerData data = playback_buffer[0];
-        playback_buffer.pop_front();
-
-        // update controller state
-        playback_controller->Axis1.position_value = (signed int)data.axis[0];
-        playback_controller->Axis2.position_value = (signed int)data.axis[1];
-        playback_controller->Axis3.position_value = (signed int)data.axis[2];
-        playback_controller->Axis4.position_value = (signed int)data.axis[3];
-        playback_controller->ButtonA.pressing_value = (signed int)data.digital[0];
-        playback_controller->ButtonB.pressing_value = (signed int)data.digital[1];
-        playback_controller->ButtonX.pressing_value = (signed int)data.digital[2];
-        playback_controller->ButtonY.pressing_value = (signed int)data.digital[3];
-        playback_controller->ButtonUp.pressing_value = (signed int)data.digital[4];
-        playback_controller->ButtonRight.pressing_value = (signed int)data.digital[5];
-        playback_controller->ButtonDown.pressing_value = (signed int)data.digital[6];
-        playback_controller->ButtonLeft.pressing_value = (signed int)data.digital[7];
-        playback_controller->ButtonL1.pressing_value = (signed int)data.digital[8];
-        playback_controller->ButtonL2.pressing_value = (signed int)data.digital[9];
-        playback_controller->ButtonR1.pressing_value = (signed int)data.digital[10];
-        playback_controller->ButtonR2.pressing_value = (signed int)data.digital[11];
-
-        // wait 5ms, accounting for execution delay (although if that is >1-2ms we might have a problem)
-        task_delay_until(&beginFrame, playbackDelay);
-
-        // update starting frame for delay
-        beginFrame = millis();
-    }
-
-    stop_playback();
 }
 
 void stop_playback()

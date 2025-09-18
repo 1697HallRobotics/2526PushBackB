@@ -54,25 +54,22 @@ using namespace std;
 //using namespace pros::literals;
 // using namespace okapi;
 
+// To reverse a motor, make the port number negative.
 const int8_t leftBackMotorPort = -1;
 const int8_t leftFrontMotorPort = -2;
 const int8_t rightBackMotorPort = -3;
 const int8_t rightFrontMotorPort = -4;
 
-Motor leftBackMotor     (leftBackMotorPort);
-Motor leftFrontMotor    (leftFrontMotorPort);
-
-Motor rightBackMotor    (rightBackMotorPort);
-Motor rightFrontMotor   (rightFrontMotorPort);
-
 MotorGroup leftMotors   ({leftBackMotorPort, leftFrontMotorPort});
 MotorGroup rightMotors  ({rightBackMotorPort, rightFrontMotorPort});
 
-Controller controller(CONTROLLER_MASTER);
+Controller controllerMaster(CONTROLLER_MASTER);
 
 int32_t deadzone = 3;
 
+// Intentionally neuter the base speed of the robot to provide a speed-up button.
 float speed = 0.5f;
+float speedMultiplier = 2.0f;
 float currentSpeed = speed;
 
 /**
