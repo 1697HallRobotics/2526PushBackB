@@ -1,10 +1,9 @@
 #include "recording.h"
+#include <algorithm>
 #include <cfloat>
+#include <cmath>
 #include <cstddef>
-#include <cstdint>
 #include <cstdlib>
-#include <cstring>
-#include <string>
 
 void start_recording(const string filename, uint8_t length, Gps* gps)
 {
@@ -35,19 +34,19 @@ void start_recording(const string filename, uint8_t length, Gps* gps)
         return;
     }
 
+    // initialize all variables for the thread
     max_recording_time = length;
 
     recording_buffer = vector<ControllerData>();
 
-    recording_output_stream.write((const char*)&length, sizeof(uint8_t));
+    recording_output_stream.write((char*)&length, sizeof(uint8_t));
 
     recording_gps = gps;
 
-    float gps_x, gps_y, gps_heading;
     PositionData gpsData = get_gps_position_data(gps);
-    recording_output_stream.write((const char*)&(gpsData.positionX), sizeof(float));
-    recording_output_stream.write((const char*)&(gpsData.positionY), sizeof(float));
-    recording_output_stream.write((const char*)&(gpsData.heading), sizeof(float));
+    recording_output_stream.write((char*)&(gpsData.positionX), sizeof(float));
+    recording_output_stream.write((char*)&(gpsData.positionY), sizeof(float));
+    recording_output_stream.write((char*)&(gpsData.heading), sizeof(float));
     
     stop_system = false;
 
@@ -86,7 +85,6 @@ void capture_controller()
         (int8_t) controller_get_digital(E_CONTROLLER_MASTER, E_CONTROLLER_DIGITAL_R1),
         (int8_t) controller_get_digital(E_CONTROLLER_MASTER, E_CONTROLLER_DIGITAL_R2)
         },
-        // this line of code sponsored by tipchr jpmocky
         .gpsData = get_gps_position_data(recording_gps)
     };
 
@@ -102,18 +100,18 @@ void flush_recording_buffer()
         // write analog data
         for (size_t i = 0; i < 4; i++)
         {
-            recording_output_stream.write((const char*)&capture.axis[i], sizeof(char));
+            recording_output_stream.write((char*)&(capture.axis[i]), sizeof(char));
         }
 
         // write controller data
         for (size_t i = 0; i < 12; i++)
         {
-            recording_output_stream.write((const char*)&capture.digital[i], sizeof(char));
+            recording_output_stream.write((char*)&(capture.digital[i]), sizeof(char));
         }
 
-        recording_output_stream.write((const char*)&(capture.gpsData.positionX), sizeof(float));
-        recording_output_stream.write((const char*)&(capture.gpsData.positionY), sizeof(float));
-        recording_output_stream.write((const char*)&(capture.gpsData.heading), sizeof(float));
+        recording_output_stream.write((char*)&(capture.gpsData.positionX), sizeof(float));
+        recording_output_stream.write((char*)&(capture.gpsData.positionY), sizeof(float));
+        recording_output_stream.write((char*)&(capture.gpsData.heading), sizeof(float));
     }
 
     recording_output_stream.flush();
@@ -176,12 +174,11 @@ void stop_recording()
 
 PositionData get_position(string filename)
 {
-    printf("getting positional data");
-
     // ensure we have something to read the data from
     if (!usd::is_installed())
     {
-        printf("PLAYBACK FAILED: NO SD (ENXIO)");
+        printf("GETTING POSITION FAILED: NO SD (ENXIO)");
+        return (PositionData){0,0,0};
     }
 
     ifstream stream;
@@ -189,7 +186,8 @@ PositionData get_position(string filename)
 
     if (!stream.is_open() || stream.bad())
     {
-        printf("PLAYBACK FAILED: BAD IFSTREAM (EIO)");
+        printf("GETTING POSITION FAILED: BAD IFSTREAM (EIO)");
+        return (PositionData){0,0,0};
     }
 
     // read the length of the recording
@@ -227,6 +225,33 @@ void playback_thread(void *param)
         // get difference from current gps position to recorded GPS position
         PositionData currentData = get_gps_position_data(playback_gps);
         PositionData oldData = data.gpsData;
+
+        // --------- correction code ---------
+
+        // note: the gps returns position in meters.
+        //       the domain of the x and y is [-1.8, 1.8]
+
+        // calculate the difference of the magnitude of the two vectors.
+        float magnitudeDifference = (currentData.positionX * currentData.positionX + currentData.positionY * currentData.positionY) - (oldData.positionX * oldData.positionX + oldData.positionY * oldData.positionY);
+
+        // currently an arbitrary amount for difference calculation, further testing is required to determine the best value.
+        // if we're over a meter away from our target location we've failed just give up
+        if (magnitudeDifference > 0.25 && magnitudeDifference < 1) {
+            // used to compute the proper "left" and "right" turns
+            float forwardVector[2] = { cosf(currentData.heading * DEG2RAD), sinf(currentData.heading * DEG2RAD) };
+            float leftVector[2] = { forwardVector[1], forwardVector[0] };
+
+            float posDiff[2] = { currentData.positionX - oldData.positionX, currentData.positionY - oldData.positionX };
+
+            float forwardDiff = posDiff[0] * forwardVector[0] + posDiff[1] * forwardVector[1];
+            float leftDiff = -posDiff[0] * leftVector[0] + posDiff[1] * leftVector[1];
+
+            // the 50x multiplier is, again, arbitrary. we'll have to test it more.
+            data.axis[playback_forward_axis] = clamp((int)data.axis[playback_forward_axis] + (int)(forwardDiff * 50), -127, 127);
+            data.axis[playback_turn_axis] = clamp((int)data.axis[playback_turn_axis] - (int)(leftDiff * 50), -127, 127);
+        }
+
+        // -----------------------------------
 
         // update controller state
         playback_controller->Axis1.position_value = (signed int)data.axis[0];

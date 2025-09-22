@@ -1,6 +1,7 @@
 #ifndef _RECORDING_H_
 #define _RECORDING_H_
 
+#include <cstdint>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -14,6 +15,7 @@ using namespace pros;
 using namespace pros::c;
 
 #define DEBUG 0
+#define DEG2RAD 0.017453292f
 
 typedef struct
 {
@@ -79,7 +81,7 @@ static deque<ControllerData> playback_buffer;
 // the GPS sensor used by the playback thread to correct towards.
 static Gps* playback_gps;
 // the controller axes to correct.
-static int playback_forward_axis = -1, playback_turn_axis = -1;
+static uint8_t playback_forward_axis = 255, playback_turn_axis = 255;
 
 // Stop the recording or playback at the next process frame.
 static bool stop_system = false;
