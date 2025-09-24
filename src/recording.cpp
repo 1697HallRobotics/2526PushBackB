@@ -238,6 +238,7 @@ void playback_thread(void *param)
         // if we're over a meter away from our target location we've failed just give up
         if (magnitudeDifference > 0.25 && magnitudeDifference < 1) {
             // used to compute the proper "left" and "right" turns
+            
             float forwardVector[2] = { cosf(currentData.heading * DEG2RAD), sinf(currentData.heading * DEG2RAD) };
             float leftVector[2] = { forwardVector[1], forwardVector[0] };
 
@@ -250,6 +251,10 @@ void playback_thread(void *param)
             data.axis[playback_forward_axis] = clamp((int)data.axis[playback_forward_axis] + (int)(forwardDiff * 50), -127, 127);
             data.axis[playback_turn_axis] = clamp((int)data.axis[playback_turn_axis] - (int)(leftDiff * 50), -127, 127);
         }
+
+        // account for GPS heading difference
+        float headingDifference = currentData.heading - oldData.heading;
+        data.axis[playback_turn_axis] = clamp((int)data.axis[playback_turn_axis] + (int)(headingDifference * 0.16667f), -127, 127);
 
         // -----------------------------------
 
