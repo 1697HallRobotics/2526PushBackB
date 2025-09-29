@@ -124,7 +124,7 @@ virtual_controller* begin_playback(string filename);
  * @brief Begin the playback.
  * @return An pointer to the virtual controller, being updated in real time in accordance to the playback timing.
  */
-virtual_controller* begin_playback(string filename, int forwardAxis, int turnAxis, Gps* playbackGps);
+virtual_controller* begin_playback(string filename, bool correctPath, int forwardAxis, int turnAxis, Gps* playbackGps);
 
 /**
  * @brief Immediately end the playback and clean it up.

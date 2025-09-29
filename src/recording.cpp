@@ -44,9 +44,9 @@ void start_recording(const string filename, uint8_t length, Gps* gps)
     recording_gps = gps;
 
     PositionData gpsData = get_gps_position_data(gps);
-    recording_output_stream.write((char*)&(gpsData.positionX), sizeof(float));
-    recording_output_stream.write((char*)&(gpsData.positionY), sizeof(float));
-    recording_output_stream.write((char*)&(gpsData.heading), sizeof(float));
+    recording_output_stream.write((char*)&gpsData.positionX, sizeof(float));
+    recording_output_stream.write((char*)&gpsData.positionY, sizeof(float));
+    recording_output_stream.write((char*)&gpsData.heading, sizeof(float));
     
     stop_system = false;
 
@@ -56,9 +56,9 @@ void start_recording(const string filename, uint8_t length, Gps* gps)
 PositionData get_gps_position_data(Gps *gps)
 {
     return {
-        .positionX = recording_gps == nullptr ? (float)recording_gps->get_position_x() : FLT_MAX,
-        .positionY = recording_gps == nullptr ? (float)recording_gps->get_position_y() : FLT_MAX,
-        .heading = recording_gps == nullptr ? (float)recording_gps->get_heading() : FLT_MAX
+        .positionX = gps != nullptr ? (float)gps->get_position_x() : FLT_MAX,
+        .positionY = gps != nullptr ? (float)gps->get_position_y() : FLT_MAX,
+        .heading = gps != nullptr ? (float)gps->get_heading() : FLT_MAX
     };
 }
 
@@ -100,18 +100,18 @@ void flush_recording_buffer()
         // write analog data
         for (size_t i = 0; i < 4; i++)
         {
-            recording_output_stream.write((char*)&(capture.axis[i]), sizeof(char));
+            recording_output_stream.write((char*)&capture.axis[i], sizeof(char));
         }
 
         // write controller data
         for (size_t i = 0; i < 12; i++)
         {
-            recording_output_stream.write((char*)&(capture.digital[i]), sizeof(char));
+            recording_output_stream.write((char*)&capture.digital[i], sizeof(char));
         }
 
-        recording_output_stream.write((char*)&(capture.gpsData.positionX), sizeof(float));
-        recording_output_stream.write((char*)&(capture.gpsData.positionY), sizeof(float));
-        recording_output_stream.write((char*)&(capture.gpsData.heading), sizeof(float));
+        recording_output_stream.write((char*)&capture.gpsData.positionX, sizeof(float));
+        recording_output_stream.write((char*)&capture.gpsData.positionY, sizeof(float));
+        recording_output_stream.write((char*)&capture.gpsData.heading, sizeof(float));
     }
 
     recording_output_stream.flush();
@@ -225,39 +225,39 @@ void playback_thread(void *param)
         // get difference from current gps position to recorded GPS position
         PositionData currentData = get_gps_position_data(playback_gps);
         PositionData oldData = data.gpsData;
+        
+        if (playback_gps != nullptr) {
+            // --------- correction code ---------
 
-        // --------- correction code ---------
+            // note: the gps returns position in meters.
+            //       the domain of the x and y is [-1.8, 1.8]
 
-        // note: the gps returns position in meters.
-        //       the domain of the x and y is [-1.8, 1.8]
+            // calculate the difference of the magnitude of the two vectors.
+            float magnitudeDifference = fabsf( (currentData.positionX * currentData.positionX + currentData.positionY * currentData.positionY) - (oldData.positionX * oldData.positionX + oldData.positionY * oldData.positionY) );
 
-        // calculate the difference of the magnitude of the two vectors.
-        float magnitudeDifference = (currentData.positionX * currentData.positionX + currentData.positionY * currentData.positionY) - (oldData.positionX * oldData.positionX + oldData.positionY * oldData.positionY);
+            // currently an arbitrary amount for difference calculation, further testing is required to determine the best value.
+            // if we're over a meter away from our target location we've failed just give up
+            if (magnitudeDifference > 0.125 && magnitudeDifference < 1) {
+                // used to compute the proper "left" and "right" turns
+                float forwardVector[2] = { cosf(currentData.heading * DEG2RAD), sinf(currentData.heading * DEG2RAD) };
+                float leftVector[2] = { forwardVector[1], forwardVector[0] };
 
-        // currently an arbitrary amount for difference calculation, further testing is required to determine the best value.
-        // if we're over a meter away from our target location we've failed just give up
-        if (magnitudeDifference > 0.25 && magnitudeDifference < 1) {
-            // used to compute the proper "left" and "right" turns
-            
-            float forwardVector[2] = { cosf(currentData.heading * DEG2RAD), sinf(currentData.heading * DEG2RAD) };
-            float leftVector[2] = { forwardVector[1], forwardVector[0] };
+                float posDiff[2] = { currentData.positionX - oldData.positionX, currentData.positionY - oldData.positionX };
 
-            float posDiff[2] = { currentData.positionX - oldData.positionX, currentData.positionY - oldData.positionX };
+                float forwardDiff = posDiff[0] * forwardVector[0] + posDiff[1] * forwardVector[1];
+                float leftDiff = -posDiff[0] * leftVector[0] + posDiff[1] * leftVector[1];
 
-            float forwardDiff = posDiff[0] * forwardVector[0] + posDiff[1] * forwardVector[1];
-            float leftDiff = -posDiff[0] * leftVector[0] + posDiff[1] * leftVector[1];
+                // the 50x multiplier is, again, arbitrary. we'll have to test it more.
+                data.axis[playback_forward_axis] = clamp((int)data.axis[playback_forward_axis] + (int)(forwardDiff * 50), -127, 127);
+                data.axis[playback_turn_axis] = clamp((int)data.axis[playback_turn_axis] - (int)(leftDiff * 50), -127, 127);
+            }
 
-            // the 50x multiplier is, again, arbitrary. we'll have to test it more.
-            data.axis[playback_forward_axis] = clamp((int)data.axis[playback_forward_axis] + (int)(forwardDiff * 50), -127, 127);
-            data.axis[playback_turn_axis] = clamp((int)data.axis[playback_turn_axis] - (int)(leftDiff * 50), -127, 127);
+            // account for GPS heading difference
+            float headingDifference = currentData.heading - oldData.heading;
+            data.axis[playback_turn_axis] = clamp((int)data.axis[playback_turn_axis] + (int)(headingDifference * 0.16667f), -127, 127);
+
+            // -----------------------------------
         }
-
-        // account for GPS heading difference
-        float headingDifference = currentData.heading - oldData.heading;
-        data.axis[playback_turn_axis] = clamp((int)data.axis[playback_turn_axis] + (int)(headingDifference * 0.16667f), -127, 127);
-
-        // -----------------------------------
-
         // update controller state
         playback_controller->Axis1.position_value = (signed int)data.axis[0];
         playback_controller->Axis2.position_value = (signed int)data.axis[1];
@@ -288,7 +288,7 @@ void playback_thread(void *param)
 
 virtual_controller *begin_playback(string filename)
 {
-    return begin_playback(filename, 0, 0, nullptr);
+    return begin_playback(filename, false, 0, 0, nullptr);
 }
 
 virtual_controller *begin_playback(string filename, bool correctPath, int forwardAxis, int turnAxis, Gps* playbackGps)
@@ -337,7 +337,7 @@ virtual_controller *begin_playback(string filename, bool correctPath, int forwar
 
         // read extra bytes from the gps
         float gpsRaw[3];
-        stream.read((char*)&posX, 3*sizeof(float));
+        stream.read((char*)&gpsRaw, 3*sizeof(float));
 
         // convert raw data into the ControllerData struct
         ControllerData data = {

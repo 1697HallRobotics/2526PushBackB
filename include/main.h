@@ -55,10 +55,10 @@ using namespace std;
 // using namespace okapi;
 
 // To reverse a motor, make the port number negative.
-const int8_t leftBackMotorPort = -1;
-const int8_t leftFrontMotorPort = -2;
-const int8_t rightBackMotorPort = -3;
-const int8_t rightFrontMotorPort = -4;
+const int8_t leftBackMotorPort = -16;//-1;
+const int8_t leftFrontMotorPort = -18;//-2;
+const int8_t rightBackMotorPort = -15;//-3;
+const int8_t rightFrontMotorPort = -11;//-4;
 
 MotorGroup leftMotors   ({leftBackMotorPort, leftFrontMotorPort});
 MotorGroup rightMotors  ({rightBackMotorPort, rightFrontMotorPort});

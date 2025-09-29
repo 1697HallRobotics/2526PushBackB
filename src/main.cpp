@@ -6,7 +6,9 @@
 #include "liblvgl/widgets/image/lv_image.h"
 #include "pros/misc.h"
 #include "pros/motors.h"
+#include "recording.h"
 #include "tenna_gif.h"
+#include <iterator>
 
 static lv_obj_t* gif_img;
 int gifTimer = 0;
@@ -23,7 +25,7 @@ template <typename T> int sgn(T val) {
 
 // The primary drive code of the robot. This function does not return.
 // A template type is used in order to facilitate the `virtual_controller` type provided by the recording system.
-template<typename T> void drive(T controller) {
+template<typename T> void drive(T &controller) {
 	while (true) {
 		int32_t turnPower = controller.get_analog(ANALOG_RIGHT_X);
 		int32_t rawForwardPower = controller.get_analog(ANALOG_LEFT_Y);
@@ -112,7 +114,8 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	
+	drive(*begin_playback("test"));
+
 }
 
 /**
@@ -129,5 +132,6 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 void opcontrol() {
+	start_recording("test", 12, nullptr);
 	drive(controllerMaster);
 }
