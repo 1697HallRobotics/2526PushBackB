@@ -8,7 +8,6 @@
 #include "pros/motors.h"
 #include "recording.h"
 #include "tenna_gif.h"
-#include <iterator>
 
 static lv_obj_t* gif_img;
 int gifTimer = 0;

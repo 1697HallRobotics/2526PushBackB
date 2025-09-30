@@ -372,9 +372,6 @@ void stop_playback()
         return;
     }
     stop_system = true;
-    #if DEBUG == 1
-    lcd::set_text(7, "END");
-    #endif
     // zero out everything so the robot isn't moving to infinity
     playback_controller->Axis1.position_value = 0;
     playback_controller->Axis2.position_value = 0;

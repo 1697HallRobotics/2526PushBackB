@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRF Editor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&display=swap');
+    </style>
+    <link rel="stylesheet" href="editor.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/23.1.3/tween.umd.js"></script>
+    <script src="main.js"></script>
+</head>
+
+<body>
+    
+    <button id="input_button" class="font-gnarly upload-button button-84" style="font-size: 3rem; transform: translate(-50%,-50%);" onclick="document.getElementById('input').click()">Upload Recording</button>
+    
+    <input type="file" name="input" id="input" style="display:none;" accept=".vrf">
+    <div id="data_ui" class="hidden">
+        <input type="range" id="timeline" value="0">
+        <br>
+        <input type="text" class="font-gnarly" id="progress" size="5" value="0">
+        <p id="max" class="font-gnarly" style="display: inline;">0</p>
+        <br>
+        <p id="timestamp" class="font-gnarly" style="display: inline;">0.00/0.00s</p>
+        <br>
+        <button id="button_play" class="font-gnarly time-button" onclick="begin_playback($('#progress').val())">Play</button>
+        <button id="button_stop" class="font-gnarly time-button" onclick="stop_playback()">Stop</button>
+        <br>
+        <h2 class="font-gnarly">Axes</h2>
+        <label for="axis1" class="font-gnarly">Axis 1</label>
+        <input type="text" id="axis1" name="axis1" class="axis" value="0">
+        <label for="axis2" class="font-gnarly">Axis 2</label>
+        <input type="text" id="axis2" name="axis2" class="axis" value="0">
+        <br>
+        <label for="axis3" class="font-gnarly">Axis 3</label>
+        <input type="text" id="axis3" name="axis3" class="axis" value="0">
+        <label for="axis4" class="font-gnarly">Axis 4</label>
+        <input type="text" id="axis4" name="axis4" class="axis" value="0">
+        <br>
+        <h2 class="font-gnarly">Buttons</h2>
+        <label for="button_a" class="font-gnarly">A</label>
+        <input type="checkbox" id="button_a" name="button_a">
+        <label for="button_b" class="font-gnarly">B</label>
+        <input type="checkbox" id="button_b" name="button_b">
+        <label for="button_x" class="font-gnarly">X</label>
+        <input type="checkbox" id="button_x" name="button_x">
+        <label for="button_y" class="font-gnarly">Y</label>
+        <input type="checkbox" id="button_y" name="button_y">
+        <br>
+        <label for="button_up" class="font-gnarly">Up</label>
+        <input type="checkbox" id="button_up" name="button_up">
+        <label for="button_down" class="font-gnarly">Down</label>
+        <input type="checkbox" id="button_down" name="button_down">
+        <label for="button_left" class="font-gnarly">Left</label>
+        <input type="checkbox" id="button_left" name="button_left">
+        <label for="button_right" class="font-gnarly">Right</label>
+        <input type="checkbox" id="button_right" name="button_right">
+        <br>
+        <label for="button_l1" class="font-gnarly">L1</label>
+        <input type="checkbox" id="button_l1" name="button_l1">
+        <label for="button_l2" class="font-gnarly">L2</label>
+        <input type="checkbox" id="button_l2" name="button_l2">
+        <label for="button_r1" class="font-gnarly">R1</label>
+        <input type="checkbox" id="button_r1" name="button_r1">
+        <label for="button_r2" class="font-gnarly">R2</label>
+        <input type="checkbox" id="button_r2" name="button_r2">
+        <br>
+        <h2 class="font-gnarly">Editing things</h2>
+        <button id="adv1" class="font-gnarly edit-button" onclick="add_cursor(1)">Advance one frame</button>
+        <button id="rev1" class="font-gnarly edit-button" onclick="add_cursor(-1)">Go back one frame</button>
+        <br>
+        <button class="font-gnarly edit-button" onclick="save()">Save Changes</button>
+        <button class="font-gnarly edit-button">Revert All Changes</button>
+        <br>
+        <button class="font-gnarly edit-button" onclick="duplicate_action()">Duplicate action</button>
+        <input type="text" id="duplication_captures" value="0">
+        <br>
+        <h2 class="font-gnarly">Debug</h2>
+        <p id="undostack"></p>
+        <br>
+        <p id="redostack"></p>
+    </div>
+
+    <div id="controller_ui" class="hidden">
+        <img src="assets/vrf_controller_bg.png" id="base" draggable="false">
+        <!--<img src="assets/controller_ref.png" id="ref">-->
+        <img src="assets/joycon.png" id="joycon_left" class="joycon noselect" style="top: -4rem; left: -12rem;"
+            draggable="false">
+        <img src="assets/joycon.png" id="joycon_right" class="joycon noselect" style="top: -4rem; left: 13rem;"
+            draggable="false">
+        <img src="assets/digital_arrow.png" id="digital_up" class="digital noselect" style="top: -0.25rem; left: -5rem;"
+            draggable="false">
+        <img src="assets/digital_arrow.png" id="digital_right" class="digital noselect"
+            style="top: 2rem; left: -2.25rem;" draggable="false">
+        <img src="assets/digital_arrow.png" id="digital_left" class="digital noselect"
+            style="top: 2rem; left: -7.75rem;" draggable="false">
+        <img src="assets/digital_arrow.png" id="digital_down" class="digital noselect" style="top: 4.5rem; left: -5rem;"
+            draggable="false">
+
+        <img src="assets/digital_a.png" id="digital_a" class="digital noselect" style="top: 2rem; left: 8rem;"
+            draggable="false">
+        <img src="assets/digital_b.png" id="digital_b" class="digital noselect" style="top: 4.5rem; left: 5.25rem;"
+            draggable="false">
+        <img src="assets/digital_x.png" id="digital_x" class="digital noselect" style="top: -0.25rem; left: 5.25rem;"
+            draggable="false">
+        <img src="assets/digital_y.png" id="digital_y" class="digital noselect" style="top: 2rem; left: 2.5rem;"
+            draggable="false">
+    </div>
+</body>
+
+</html>

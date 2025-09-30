@@ -14,7 +14,6 @@ using namespace chrono;
 using namespace pros;
 using namespace pros::c;
 
-#define DEBUG 0
 #define DEG2RAD 0.017453292f
 
 typedef struct
