@@ -59,9 +59,9 @@ template<typename T> void drive(T &controller) {
 
 		if (controller.get_digital(DIGITAL_X)) {
 			if (outtakeForward) {
-				outtakeMotor.move(127);
-			} else {
 				outtakeMotor.move(-127);
+			} else {
+				outtakeMotor.move(127);
 			}
 		} else {
 			outtakeMotor.brake();
@@ -133,7 +133,7 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	drive(*begin_playback("test"));
+	//drive(*begin_playback("test"));
 
 }
 
