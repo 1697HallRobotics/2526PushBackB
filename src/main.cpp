@@ -1,11 +1,5 @@
 #include "main.h"
-#include "liblvgl/core/lv_obj_pos.h"
-#include "liblvgl/display/lv_display.h"
-#include "liblvgl/misc/lv_timer.h"
-#include "liblvgl/misc/lv_types.h"
-#include "liblvgl/widgets/image/lv_image.h"
 #include "pros/misc.h"
-#include "pros/motors.h"
 #include "recording.h"
 #include "tenna_gif.h"
 
@@ -25,6 +19,9 @@ template <typename T> int sgn(T val) {
 // The primary drive code of the robot. This function does not return.
 // A template type is used in order to facilitate the `virtual_controller` type provided by the recording system.
 template<typename T> void drive(T &controller) {
+	bool outtakeForward = true;
+	bool stickUp = true;
+
 	while (true) {
 		int32_t turnPower = controller.get_analog(ANALOG_RIGHT_X);
 		int32_t rawForwardPower = controller.get_analog(ANALOG_LEFT_Y);
@@ -39,10 +36,8 @@ template<typename T> void drive(T &controller) {
 
 		// make robot go faster if right bumper is pressed, allows for faster movements.
 		if (controller.get_digital(E_CONTROLLER_DIGITAL_R1)) currentSpeed = speed * speedMultiplier;
-		// ditto, but slower for the left bumper: higher precision.
-		else if (controller.get_digital(E_CONTROLLER_DIGITAL_L1)) currentSpeed = speed / speedMultiplier;
 		else currentSpeed = speed;
-
+ 
 		if (turnPower != 0 || forwardPower != 0)
 		{
 			rightMotors.move((turnPower - forwardPower) * currentSpeed);
@@ -52,6 +47,31 @@ template<typename T> void drive(T &controller) {
 		{
 			rightMotors.brake();
 			leftMotors.brake();
+		}
+
+		if (controller.get_digital(DIGITAL_L2)) intakeMotor.move(127);
+		else if (controller.get_digital(DIGITAL_L1)) intakeMotor.move(-127);
+		else intakeMotor.brake();
+
+		if (controller.get_digital_new_press(DIGITAL_Y)) {
+			outtakeForward = !outtakeForward;
+		}
+
+		if (controller.get_digital(DIGITAL_X)) {
+			if (outtakeForward) {
+				outtakeMotor.move(127);
+			} else {
+				outtakeMotor.move(-127);
+			}
+		} else {
+			outtakeMotor.brake();
+		}
+
+		if (controller.get_digital_new_press(DIGITAL_A)) {
+			if (stickUp) armMotor.move_absolute(0, 999);
+			else armMotor.move_absolute(0, 999);
+
+			stickUp = !stickUp;
 		}
 		
 		pros::delay(5);
@@ -131,6 +151,6 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	start_recording("test", 12, nullptr);
+	//start_recording("test", 12, nullptr);
 	drive(controllerMaster);
 }

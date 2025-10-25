@@ -115,7 +115,7 @@ function save() {
     document.body.appendChild(a);
     a.style = "display: none";
     
-    let blob = new Blob([serialized_buffer], {type: "octet/stream"});
+    let blob = new Blob([serialized_buffer], {type: "application/octet-stream"});
     let url = window.URL.createObjectURL(blob);
 
     a.href = url;
@@ -123,6 +123,8 @@ function save() {
     a.click();
 
     window.URL.revokeObjectURL(url);
+
+    a.remove();
 };
 
 function add_cursor(idx) {
@@ -166,29 +168,108 @@ function update_ui(idx) {
     $("#button_r1")   .prop("checked", playback_buffer[idx].digital[10] == 1);
     $("#button_r2")   .prop("checked", playback_buffer[idx].digital[11] == 1);
 
-    $("#digital_a")    .toggleClass("pressing", playback_buffer[idx].digital[0] == 1);
-    $("#digital_b")    .toggleClass("pressing", playback_buffer[idx].digital[1] == 1);
-    $("#digital_x")    .toggleClass("pressing", playback_buffer[idx].digital[2] == 1);
-    $("#digital_y")    .toggleClass("pressing", playback_buffer[idx].digital[3] == 1);
-    $("#digital_up")   .toggleClass("pressing", playback_buffer[idx].digital[4] == 1);
-    $("#digital_right").toggleClass("pressing", playback_buffer[idx].digital[5] == 1);
-    $("#digital_down") .toggleClass("pressing", playback_buffer[idx].digital[6] == 1);
-    $("#digital_left") .toggleClass("pressing", playback_buffer[idx].digital[7] == 1);
-    $("#digital_l1")   .toggleClass("pressing", playback_buffer[idx].digital[8] == 1);
-    $("#digital_l2")   .toggleClass("pressing", playback_buffer[idx].digital[9] == 1);
-    $("#digital_r1")   .toggleClass("pressing", playback_buffer[idx].digital[10] == 1);
-    $("#digital_r2")   .toggleClass("pressing", playback_buffer[idx].digital[11] == 1);
+    $("#infillsA")     .attr("fill", playback_buffer[idx].digital[0] == 1 ? "#2ca3fc" : "#fff");
+    $("#infillsB")     .attr("fill", playback_buffer[idx].digital[1] == 1 ? "#2ca3fc" : "#fff");
+    $("#infillsX")     .attr("fill", playback_buffer[idx].digital[2] == 1 ? "#2ca3fc" : "#fff");
+    $("#infillsY")     .attr("fill", playback_buffer[idx].digital[3] == 1 ? "#2ca3fc" : "#fff");
+    $("#infillsUp")    .attr("fill", playback_buffer[idx].digital[4] == 1 ? "#2ca3fc" : "#fff");
+    $("#infillsRight") .attr("fill", playback_buffer[idx].digital[5] == 1 ? "#2ca3fc" : "#fff");
+    $("#infillsDown")  .attr("fill", playback_buffer[idx].digital[6] == 1 ? "#2ca3fc" : "#fff");
+    $("#infillsLeft")  .attr("fill", playback_buffer[idx].digital[7] == 1 ? "#2ca3fc" : "#fff");
+    $("#shoulderL1")   .attr("fill", playback_buffer[idx].digital[8] == 1 ? "#2ca3fc" : "#fff");
+    $("#shoulderL2")   .attr("fill", playback_buffer[idx].digital[9] == 1 ? "#2ca3fc" : "#fff");
+    $("#shoulderR1")   .attr("fill", playback_buffer[idx].digital[10] == 1 ? "#2ca3fc" : "#fff");
+    $("#shoulderR2")   .attr("fill", playback_buffer[idx].digital[11] == 1 ? "#2ca3fc" : "#fff");
     
-    $("#joycon_right").css("transform", "translate(" + (playback_buffer[idx].axis[0] * 2.5) + "px," + (playback_buffer[idx].axis[1] * -2.5) + "px)");
-    $("#joycon_left") .css("transform", "translate(" + (playback_buffer[idx].axis[3] * 2.5) + "px," + (playback_buffer[idx].axis[2] * -2.5) + "px)");
-
-    $("#undostack").text(JSON.stringify(undo_stack));
-    $("#redostack").text(JSON.stringify(redo_stack));
+    $("#axisR").css("transform", "translate(" + (playback_buffer[idx].axis[0] * 0.118) + "px," + (playback_buffer[idx].axis[1] * -0.118) + "px)");
+    $("#axisL").css("transform", "translate(" + (playback_buffer[idx].axis[3] * 0.118) + "px," + (playback_buffer[idx].axis[2] * -0.118) + "px)");
 
     Array.from(document.getElementsByTagName("input")).forEach(item => {
         item.blur();
     });
+
+    /** @type {CanvasRenderingContext2D} */
+    var context = document.getElementById("tracker").getContext("2d")
+    
+    context.clearRect(0, 0, 9999, 9999);
+
+    context.strokeStyle = "#ff0000"
+    context.beginPath()
+    context.moveTo(context.canvas.width / 2, 0)
+    context.lineTo(context.canvas.width / 2, context.canvas.height)
+    context.closePath()
+    context.stroke()
+    /** @type {string} */
+    var optionChosen = document.getElementById("inputs").value
+
+    var randomVals = [
+        // RIGHT
+        "#883300",
+        "#b32100",
+        // LEFT
+        "#885b00",
+        "#b36200",
+
+        "#fcff2d",
+        "#a7ff2d",
+
+        "#2dff30",
+        "#2dffa7",
+
+        "#2dffe3",
+        "#2deaff",
+
+        "#2d99ff",
+        "#2d76ff",
+
+        "#2d3bff",
+        "#6c2dff",
+
+        "#b52dff",
+        "#ff2df4",
+    ]
+
+    if (optionChosen == "all") {
+        for (let axisIdx = 0; axisIdx < 4; axisIdx++) {
+            drawCanvas(idx, axisIdx, context, false, randomVals[axisIdx])
+        }
+
+        for (let axisIdx = 0; axisIdx < 12; axisIdx++) {
+            drawCanvas(idx, axisIdx, context, true, randomVals[axisIdx + 4])
+        }
+    } else {
+        if (optionChosen[0] == 'a') {
+            drawCanvas(idx, Number(optionChosen[4]), context, false, randomVals[Number(optionChosen[4])])
+        } else {
+            drawCanvas(idx, Number(optionChosen.substring(7)) - 4, context, true, randomVals[Number(optionChosen.substring(7))])
+        }
+    }
+
+    
 };
+
+function drawCanvas(idx, num, context, button, col) {
+    context.strokeStyle = col
+    context.beginPath()
+    context.moveTo(0, context.canvas.height / 2)
+    for (let index = 0; index < Math.min(idx + 1200, playback_buffer.length); index++) {
+        var raw, mult
+
+        if (!button) {
+            raw = playback_buffer[index].axis[num]
+            mult = 0.9
+        } else {
+            raw = playback_buffer[index].digital[num]
+            mult = 114.3
+        }
+
+        const element = (((raw * mult) / -127) + 1) / 2; // normalize to [0, 1]
+
+        context.lineTo((index - idx + context.canvas.width / 2), element * context.canvas.height)
+    }
+    context.closePath();
+    context.stroke();
+}
 
 function begin_playback(start_pos = 0) {
     if (isRunning) return;
@@ -227,6 +308,12 @@ function tickPlayback() {
         // update stuff
         playback_cursor++;
         update_ui(playback_cursor);
+        // stop if user says to stop or if cursor has reached end
+        if (playback_cursor >= playback_buffer.length - 1) {
+            isRunning = false;
+            $("#button_stop").text("Stop");
+            return;
+        }
         elapsed -= fpsInterval;
     };
 };
@@ -263,7 +350,7 @@ window.onload = function () {
     input.addEventListener("change", () => {
         // clear out the array in the event of loading a new file if one is already loaded
         if (coords.y == -50) {
-            const tween = new Tween(coords, false).to({x: -50, y: 400 }, 1000).easing(Easing.Quadratic.InOut).onUpdate(() => {
+            const tween = new Tween(coords, false).to({x: -50, y: 450 }, 1000).easing(Easing.Quadratic.InOut).onUpdate(() => {
                 document.getElementById("input_button").style.setProperty("transform", "translate(" + coords.x + "%, " + coords.y + "%)");
             }).start();
             const tween2 = new Tween(alpha, false).to({val: 100}, 1200).easing(Easing.Quadratic.InOut).onUpdate(() => {
@@ -288,7 +375,12 @@ window.onload = function () {
             while (cursor < array.byteLength) {
                 playback_buffer.push({
                     "axis": [array[cursor++], array[cursor++], array[cursor++], array[cursor++]],
-                    "digital": [array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++]]
+                    "digital": [array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++], array[cursor++]],
+                    "gps": {
+                        "x": bytes_to_float([array[cursor++], array[cursor++], array[cursor++], array[cursor++]]),
+                        "y": bytes_to_float([array[cursor++], array[cursor++], array[cursor++], array[cursor++]]),
+                        "heading": bytes_to_float([array[cursor++], array[cursor++], array[cursor++], array[cursor++]])
+                    }
                 });
             };
             // copy the original to a reserve buffer
@@ -326,6 +418,21 @@ window.onload = function () {
     document.getElementById("button_l2")    .addEventListener("change", e => { saveToBuffer("digital",  9, e.target.checked); e.target.blur() });
     document.getElementById("button_r1")    .addEventListener("change", e => { saveToBuffer("digital", 10, e.target.checked); e.target.blur() });
     document.getElementById("button_r2")    .addEventListener("change", e => { saveToBuffer("digital", 11, e.target.checked); e.target.blur() });
+
+    document.getElementById("infillsA")     .addEventListener("click",  e => { document.getElementById("button_a").checked = !document.getElementById("button_a").checked; document.getElementById("button_a").dispatchEvent(new Event("change")) })
+    document.getElementById("infillsB")     .addEventListener("click",  e => { document.getElementById("button_b").checked = !document.getElementById("button_b").checked; document.getElementById("button_b").dispatchEvent(new Event("change")) })
+    document.getElementById("infillsX")     .addEventListener("click",  e => { document.getElementById("button_x").checked = !document.getElementById("button_x").checked; document.getElementById("button_x").dispatchEvent(new Event("change")) })
+    document.getElementById("infillsY")     .addEventListener("click",  e => { document.getElementById("button_y").checked = !document.getElementById("button_y").checked; document.getElementById("button_y").dispatchEvent(new Event("change")) })
+
+    document.getElementById("infillsUp")    .addEventListener("click",  e => { document.getElementById("button_up").checked = !document.getElementById("button_up").checked; document.getElementById("button_up").dispatchEvent(new Event("change")) })
+    document.getElementById("infillsDown")  .addEventListener("click",  e => { document.getElementById("button_down").checked = !document.getElementById("button_down").checked; document.getElementById("button_down").dispatchEvent(new Event("change")) })
+    document.getElementById("infillsRight") .addEventListener("click",  e => { document.getElementById("button_right").checked = !document.getElementById("button_right").checked; document.getElementById("button_right").dispatchEvent(new Event("change")) })
+    document.getElementById("infillsLeft")  .addEventListener("click",  e => { document.getElementById("button_left").checked = !document.getElementById("button_left").checked; document.getElementById("button_left").dispatchEvent(new Event("change")) })
+
+    document.getElementById("shoulderL1")     .addEventListener("click",  e => { document.getElementById("button_l1").checked = !document.getElementById("button_l1").checked; document.getElementById("button_l1").dispatchEvent(new Event("change")) })
+    document.getElementById("shoulderL2")     .addEventListener("click",  e => { document.getElementById("button_l2").checked = !document.getElementById("button_l2").checked; document.getElementById("button_l2").dispatchEvent(new Event("change")) })
+    document.getElementById("shoulderR1")     .addEventListener("click",  e => { document.getElementById("button_r1").checked = !document.getElementById("button_r1").checked; document.getElementById("button_r1").dispatchEvent(new Event("change")) })
+    document.getElementById("shoulderR2")     .addEventListener("click",  e => { document.getElementById("button_r2").checked = !document.getElementById("button_r2").checked; document.getElementById("button_r2").dispatchEvent(new Event("change")) })
     
     document.getElementById("timeline")     .addEventListener("mouseup", e => {
         e.preventDefault();
@@ -338,6 +445,8 @@ window.onload = function () {
         })
         previous_position = playback_cursor;
     });
+
+    document.getElementById("inputs")       .addEventListener("change", e => { update_ui(playback_cursor) })
 
     requestAnimationFrame(animate);
 }

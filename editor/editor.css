@@ -3,24 +3,16 @@ html {
 }
 
 body {
-    background: radial-gradient(circle at center in hsl shorter hue, #eee, #111);
-    position:absolute; 
-    top: 0;
-    bottom: 0;
-    right: 0;
-    left: 0; 
+    background: radial-gradient(circle at center, #1a535e, #1e2358);
 }
 
 #base {
-    position: absolute;
-    z-index: -9;
-    top: 2%;
-    filter: drop-shadow(-0.75rem 0 0.75rem #000);
+    filter: drop-shadow(0rem 0 0.75rem #000);
 }
 
 #ref {
     position: absolute;
-    opacity: 50%;
+    /*opacity: 50%;*/
 }
 
 #digital_right {
@@ -49,6 +41,11 @@ body {
 
 #data_ui {
     float: right;
+    width: 50%;
+}
+
+#controller_ui {
+    float: left;
     width: 50%;
 }
 
@@ -96,34 +93,34 @@ body {
 }
 
 .button-84 {
-  align-items: center;
-  background-color: initial;
-  background-image: linear-gradient(#464d55, #25292e);
-  border-radius: 8px;
-  border-width: 0;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, .1),0 3px 6px rgba(0, 0, 0, .05);
-  box-sizing: border-box;
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  flex-direction: column;
-  font-size: 18px;
-  height: 82px;
-  justify-content: center;
-  line-height: 1;
-  margin: 0;
-  outline: none;
-  overflow: hidden;
-  padding: 0 32px;
-  text-align: center;
-  text-decoration: none;
-  transform: translate3d(0, 0, 0);
-  transition: all 150ms;
-  vertical-align: baseline;
-  white-space: nowrap;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: manipulation;
+    align-items: center;
+    background-color: initial;
+    background-image: linear-gradient(160deg, #3977bd, #091a47);
+    border-radius: 8px;
+    border-width: 0;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, .1),0 3px 6px rgba(0, 0, 0, .05);
+    box-sizing: border-box;
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    flex-direction: column;
+    font-size: 18px;
+    height: 82px;
+    justify-content: center;
+    line-height: 1;
+    margin: 0;
+    outline: none;
+    overflow: hidden;
+    padding: 0 32px;
+    text-align: center;
+    text-decoration: none;
+    transform: translate3d(0, 0, 0);
+    transition: all 150ms;
+    vertical-align: baseline;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
 }
 
 .button-84:hover {
@@ -136,8 +133,15 @@ body {
   outline: 0;
 }
 
+.no-input {
+    pointer-events: none;
+}
+
+.clickable {
+    cursor: pointer;
+}
+
 #timeline {
-    accent-color: #464d55;
     width: 100%;
 }
 
@@ -160,4 +164,17 @@ body {
 
 .time-button:hover {
     background-color: #454545;
+}
+
+#gps_ui {
+    position: absolute;
+    display: flex;
+    width: 99%;
+    height: 75%;
+    top: 100%;
+    justify-content: center;
+}
+
+#vex_field {
+    
 }

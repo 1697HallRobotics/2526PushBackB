@@ -104,18 +104,21 @@ void recording_thread(void* param);
 void stop_recording();
 /**
  * @brief Helper function to easily obtain the GPS data into a `PositionData` struct.
+ * @param gps A pointer to a VEX GPS sensor object, can be nullptr
  * @return A `PositionData` struct containing the GPS X, Y and heading.
  */
  PositionData get_gps_position_data(Gps* gps);
 
 /**
- * @brief Get the position data of a recording system.
+ * @brief Gets the inital recorded position data of a file.
+ * @param filename The filename of the recorded file.
  * @return A struct containing the 
  */
 PositionData get_position(string filename);
 
 /**
  * @brief Begin the playback without correction.
+ * @param filename The filename of the recorded file.
  * @return An pointer to the virtual controller, being updated in real time in accordance to the playback timing.
  */
 virtual_controller* begin_playback(string filename);

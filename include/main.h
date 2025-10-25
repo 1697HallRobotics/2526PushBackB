@@ -14,7 +14,7 @@
 
 #ifndef _PROS_MAIN_H_
 #define _PROS_MAIN_H_
-
+#define PROS_USE_SIMPLE_NAMES
 /**
  * If defined, some commonly used enums will have preprocessor macros which give
  * a shorter, more convenient naming pattern. If this isn't desired, simply
@@ -55,13 +55,18 @@ using namespace std;
 // using namespace okapi;
 
 // To reverse a motor, make the port number negative.
-const int8_t leftBackMotorPort = -16;//-1;
-const int8_t leftFrontMotorPort = -18;//-2;
-const int8_t rightBackMotorPort = -15;//-3;
-const int8_t rightFrontMotorPort = -11;//-4;
+const int8_t leftBackMotorPort = -1;
+const int8_t leftFrontMotorPort = -4;
+const int8_t rightBackMotorPort = -2;
+const int8_t rightFrontMotorPort = -3;
 
 MotorGroup leftMotors   ({leftBackMotorPort, leftFrontMotorPort});
 MotorGroup rightMotors  ({rightBackMotorPort, rightFrontMotorPort});
+
+Motor intakeMotor(-20);
+Motor outtakeMotor(19);
+Motor armMotor(5);
+Gps gps(7);
 
 Controller controllerMaster(CONTROLLER_MASTER);
 
