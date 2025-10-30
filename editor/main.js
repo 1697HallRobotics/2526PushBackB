@@ -210,17 +210,17 @@ function update_ui(idx) {
         "#885b00",
         "#b36200",
 
-        "#fcff2d",
-        "#a7ff2d",
+        "#c3c621ff",
+        "#64991bff",
 
-        "#2dff30",
-        "#2dffa7",
+        "#19911bff",
+        "#1ba26aff",
 
-        "#2dffe3",
-        "#2deaff",
+        "#1ea391ff",
+        "#1ea4b3ff",
 
-        "#2d99ff",
-        "#2d76ff",
+        "#1e6cb4ff",
+        "#316fe1ff",
 
         "#2d3bff",
         "#6c2dff",
@@ -244,17 +244,21 @@ function update_ui(idx) {
             drawCanvas(idx, Number(optionChosen.substring(7)) - 4, context, true, randomVals[Number(optionChosen.substring(7))])
         }
     }
-
-    
 };
 
 function drawCanvas(idx, num, context, button, col) {
     context.strokeStyle = col
+    var raw, mult
     context.beginPath()
-    context.moveTo(0, context.canvas.height / 2)
-    for (let index = 0; index < Math.min(idx + 1200, playback_buffer.length); index++) {
-        var raw, mult
-
+    if (!button) {
+        raw = playback_buffer[idx].axis[num]
+        mult = 0.9
+    } else {
+        raw = playback_buffer[idx].digital[num]
+        mult = 114.3
+    }
+    context.moveTo(0 - idx + context.canvas.width / 2, ((((raw * mult) / -127) + 1) / 2) * context.canvas.height)
+    for (let index = Math.max(idx - 150, 0); index < Math.min(idx + 150, playback_buffer.length) - 1; index++) {
         if (!button) {
             raw = playback_buffer[index].axis[num]
             mult = 0.9
@@ -267,8 +271,9 @@ function drawCanvas(idx, num, context, button, col) {
 
         context.lineTo((index - idx + context.canvas.width / 2), element * context.canvas.height)
     }
+    context.moveTo(0 - idx + context.canvas.width / 2, ((((raw * mult) / -127) + 1) / 2) * context.canvas.height)
     context.closePath();
-    context.stroke();
+    context.stroke()
 }
 
 function begin_playback(start_pos = 0) {
