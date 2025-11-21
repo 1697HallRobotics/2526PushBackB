@@ -19,8 +19,6 @@ template <typename T> int sgn(T val) {
 // The primary drive code of the robot. This function does not return.
 // A template type is used in order to facilitate the `virtual_controller` type provided by the recording system.
 template<typename T> void drive(T &controller) {
-	bool outtakeForward = true;
-	bool stickUp = true;
 
 	while (true) {
 		int32_t turnPower = controller.get_analog(ANALOG_RIGHT_X);
@@ -33,10 +31,6 @@ template<typename T> void drive(T &controller) {
 		// add deadzone to controller analogs
 		if (abs(turnPower) < deadzone) turnPower = 0;
 		if (abs(forwardPower) < deadzone) forwardPower = 0;
-
-		// make robot go faster if right bumper is pressed, allows for faster movements.
-		if (controller.get_digital(E_CONTROLLER_DIGITAL_R1)) currentSpeed = speed * speedMultiplier;
-		else currentSpeed = speed;
  
 		if (turnPower != 0 || forwardPower != 0)
 		{
@@ -49,31 +43,35 @@ template<typename T> void drive(T &controller) {
 			leftMotors.brake();
 		}
 
-		if (controller.get_digital(DIGITAL_L2)) intakeMotor.move(127);
-		else if (controller.get_digital(DIGITAL_L1)) intakeMotor.move(-127);
-		else intakeMotor.brake();
-
-		if (controller.get_digital_new_press(DIGITAL_Y)) {
-			outtakeForward = !outtakeForward;
-		}
-
-		if (controller.get_digital(DIGITAL_X)) {
-			if (outtakeForward) {
-				outtakeMotor.move(-127);
-			} else {
-				outtakeMotor.move(127);
-			}
+		if (controller.get_digital(DIGITAL_R1)) {
+			intakeMotor.move(-127);
+			lowerRoller.move(127);
+			upperRoller.move(-127);
+		} else if (controller.get_digital(DIGITAL_R2)) {
+			intakeMotor.move(-127);
+			lowerRoller.move(127);
+			upperRoller.move(127);
+		} else if (controller.get_digital(DIGITAL_L2)) {
+			intakeMotor.move(127);
+			lowerRoller.move(-127);
+			upperRoller.move(-127);
 		} else {
-			outtakeMotor.brake();
+			lowerRoller.brake();
+			intakeMotor.brake();
+			upperRoller.brake();
+			if (controller.get_digital(DIGITAL_UP)) {
+				lowerRoller.move(127);
+			} else if (controller.get_digital(DIGITAL_DOWN)) {
+				lowerRoller.move(-127);
+			}
+
+			if (controller.get_digital(DIGITAL_RIGHT)) {
+				upperRoller.move(127);
+			} else if (controller.get_digital(DIGITAL_LEFT)) {
+				upperRoller.move(-127);
+			}
 		}
 
-		if (controller.get_digital_new_press(DIGITAL_A)) {
-			if (stickUp) armMotor.move_absolute(0, 999);
-			else armMotor.move_absolute(0, 999);
-
-			stickUp = !stickUp;
-		}
-		
 		pros::delay(5);
 	}
 }
@@ -108,6 +106,8 @@ void initialize() {
 void disabled() {
 	leftMotors.set_brake_mode_all(E_MOTOR_BRAKE_COAST);
 	rightMotors.set_brake_mode_all(E_MOTOR_BRAKE_COAST);
+
+	stop_recording();
 }
 
 /**
@@ -133,7 +133,7 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	//drive(*begin_playback("test"));
+	//drive(*begin_playback("skillsughhhhh"));
 
 }
 
@@ -151,6 +151,6 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	//start_recording("test", 12, nullptr);
+	//start_recording("skillsughhhhh", 60, nullptr);
 	drive(controllerMaster);
 }
