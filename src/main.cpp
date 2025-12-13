@@ -1,10 +1,14 @@
 #include "main.h"
 #include "pros/misc.h"
+#include "pros/rtos.h"
 #include "recording.h"
 #include "tenna_gif.h"
 
+//#define RECORDING
+
 static lv_obj_t* gif_img;
 int gifTimer = 0;
+bool tru = false;
 
 void update_gif(lv_timer_t* timer) {
 	lv_image_set_src(gif_img, &(tenna_gif[(gifTimer) % 7]));
@@ -43,6 +47,10 @@ template<typename T> void drive(T &controller) {
 			leftMotors.brake();
 		}
 
+		if (controller.get_digital_new_press(DIGITAL_A)) {
+			wings.toggle();
+		}
+
 		if (controller.get_digital(DIGITAL_R1)) {
 			intakeMotor.move(-127);
 			lowerRoller.move(127);
@@ -55,6 +63,9 @@ template<typename T> void drive(T &controller) {
 			intakeMotor.move(127);
 			lowerRoller.move(-127);
 			upperRoller.move(-127);
+		} else if (controller.get_digital(DIGITAL_L1)) {
+			intakeMotor.move(-127);
+			lowerRoller.move(127);
 		} else {
 			lowerRoller.brake();
 			intakeMotor.brake();
@@ -133,8 +144,7 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	//drive(*begin_playback("skillsughhhhh"));
-
+	drive(*begin_playback("auton_12-12-25_right_modified"));
 }
 
 /**
@@ -151,6 +161,8 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	//start_recording("skillsughhhhh", 60, nullptr);
+	#ifdef RECORDING
+		start_recording("auton_12-12-25_right", 20, nullptr);
+	#endif
 	drive(controllerMaster);
 }

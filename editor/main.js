@@ -12,7 +12,7 @@ let isRunning = false;
 let frameCount = 0;
 let playback_cursor = 0;
 let previous_position = 0;
-let fps = 0, fpsInterval = 0, startTime = 0, now = 0, then = 0, elapsed = 0, recordingLength = 0;
+let fps = 0, fpsInterval = 0, startTime = 0, now = 0, then = 0, elapsed = 0, recordingLength = 0, originPosX = 0, originPosY = 0, originHeading = 0;
 
 let coords = {x: -50, y: -50};
 let alpha = {val: 0};
@@ -20,8 +20,27 @@ let alpha = {val: 0};
 function bytes_to_double(byte_array) {
     return new Float64Array(byte_array)[0];
 }
-function bytes_to_float(byte_array) {
-    return new Float32Array(byte_array)[0];
+function bytes_to_float(data) {
+    // Create a buffer
+    var buf = new ArrayBuffer(4);
+    // Create a data view of it
+    var view = new DataView(buf);
+
+    // set bytes
+    data.forEach(function (b, i) {
+        view.setUint8(data.length - i - 1, b);
+    });
+
+    // Read the bits as a float; note that by doing this, we're implicitly
+    // converting it from a 32-bit float into JavaScript's native 64-bit double
+    var num = view.getFloat32(0);
+    // Done
+    return num;
+}
+function float_to_byte_array(value) {
+    let farr = new Float32Array(1);
+    farr[0] = value;
+    return new Int8Array(farr.buffer);
 }
 
 function duplicate_action() {
@@ -89,9 +108,22 @@ function resetBuffer() {
 };
 
 function save() {
-    let serialized_buffer = new Int8Array(1 + playback_buffer.length * 16);
+    let serialized_buffer = new Int8Array(13 + playback_buffer.length * (16 + 12));
     let i = 0;
     serialized_buffer[i++] = recordingLength;
+    let originBuffer = float_to_byte_array(originPosX);
+    originBuffer.forEach(element => {
+        serialized_buffer[i++] = element;
+    });
+    /////////////
+    originBuffer = float_to_byte_array(originPosY);
+    originBuffer.forEach(element => {
+        serialized_buffer[i++] = element;
+    });
+    originBuffer = float_to_byte_array(originHeading);
+    originBuffer.forEach(element => {
+        serialized_buffer[i++] = element;
+    });
     playback_buffer.forEach(controllerData => {
         serialized_buffer[i++] = controllerData.axis[0];
         serialized_buffer[i++] = controllerData.axis[1];
@@ -109,6 +141,18 @@ function save() {
         serialized_buffer[i++] = controllerData.digital[9];
         serialized_buffer[i++] = controllerData.digital[10];
         serialized_buffer[i++] = controllerData.digital[11];
+        let gpsDataBuffer = float_to_byte_array(controllerData.gps.x);
+        gpsDataBuffer.forEach(element => {
+            serialized_buffer[i++] = element;
+        });
+        gpsDataBuffer = float_to_byte_array(controllerData.gps.y);
+        gpsDataBuffer.forEach(element => {
+            serialized_buffer[i++] = element;
+        });
+        gpsDataBuffer = float_to_byte_array(controllerData.gps.heading);
+        gpsDataBuffer.forEach(element => {
+            serialized_buffer[i++] = element;
+        });
     });
 
     let a = document.createElement("a");
@@ -373,9 +417,9 @@ window.onload = function () {
             let cursor = 0;
             let length = array[cursor++];
             // float32 - double (4 bytes to read)
-            let posX = bytes_to_float([array[cursor++], array[cursor++], array[cursor++], array[cursor++]]);
-            let posY = bytes_to_float([array[cursor++], array[cursor++], array[cursor++], array[cursor++]]);
-            let heading = bytes_to_float([array[cursor++], array[cursor++], array[cursor++], array[cursor++]]);
+            originPosX = bytes_to_float([array[cursor++], array[cursor++], array[cursor++], array[cursor++]]);
+            originPosY = bytes_to_float([array[cursor++], array[cursor++], array[cursor++], array[cursor++]]);
+            originHeading = bytes_to_float([array[cursor++], array[cursor++], array[cursor++], array[cursor++]]);
             recordingLength = length;
             while (cursor < array.byteLength) {
                 playback_buffer.push({

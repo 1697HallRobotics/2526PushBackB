@@ -55,24 +55,26 @@ using namespace std;
 // using namespace okapi;
 
 // To reverse a motor, make the port number negative.
-const int8_t leftBackMotorPort = -4;
-const int8_t leftFrontMotorPort = -3;
-const int8_t rightBackMotorPort = -2;
-const int8_t rightFrontMotorPort = -1;
+const int8_t leftBackMotorPort = -8;
+const int8_t leftFrontMotorPort = -7;
+const int8_t rightBackMotorPort = -11;
+const int8_t rightFrontMotorPort = -12;
 
 MotorGroup leftMotors   ({leftBackMotorPort, leftFrontMotorPort});
 MotorGroup rightMotors  ({rightBackMotorPort, rightFrontMotorPort});
 
-Motor intakeMotor(11);
-Motor upperRoller(20);
-Motor lowerRoller(5);
+Motor intakeMotor(20);
+Motor upperRoller(2);
+Motor lowerRoller(1);
 
 Controller controllerMaster(CONTROLLER_MASTER);
+
+adi::Pneumatics wings('a', false);
 
 int32_t deadzone = 3;
 
 // Intentionally neuter the base speed of the robot to provide a speed-up button.
-float speed = 0.67f;
+float speed = 0.75f;
 float speedMultiplier = 2.0f;
 float currentSpeed = speed;
 
