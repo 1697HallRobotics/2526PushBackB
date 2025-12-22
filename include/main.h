@@ -73,11 +73,6 @@ adi::Pneumatics wings('a', false);
 
 int32_t deadzone = 3;
 
-// Intentionally neuter the base speed of the robot to provide a speed-up button.
-float speed = 0.75f;
-float speedMultiplier = 2.0f;
-float currentSpeed = speed;
-
 /**
  * Prototypes for the competition control tasks are redefined here to ensure
  * that they can be called from user code (i.e. calling autonomous from a

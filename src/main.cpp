@@ -1,6 +1,5 @@
 #include "main.h"
 #include "pros/misc.h"
-#include "pros/rtos.h"
 #include "recording.h"
 #include "tenna_gif.h"
 
@@ -38,8 +37,8 @@ template<typename T> void drive(T &controller) {
  
 		if (turnPower != 0 || forwardPower != 0)
 		{
-			rightMotors.move((turnPower - forwardPower) * currentSpeed);
-			leftMotors.move((turnPower + forwardPower) * currentSpeed);
+			rightMotors.move((turnPower - forwardPower));
+			leftMotors.move((turnPower + forwardPower));
 		}
 		else
 		{
