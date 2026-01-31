@@ -1,5 +1,6 @@
 #include "main.h"
 #include "pros/misc.h"
+#include "pros/rtos.h"
 #include "recording.h"
 #include "tenna_gif.h"
 
@@ -29,13 +30,14 @@ template<typename T> void drive(T &controller) {
 		// create an exponential easing curve rather than a default linear curve
 		// 0.00787401574 is 1/127: we convert it to a domain of [-1, 1] so the exponentiation creates the curve properly
 		// sgn call returns the sign of the original -- ensures it is preserved after exponentiation
-		int32_t forwardPower = powf(rawForwardPower * 0.00787401574, 2) * 127 * sgn(rawForwardPower);
+		int32_t forwardPower = powf(rawForwardPower * 0.00787401574, 2) * 127 * sgn(rawForwardPower) * (controller.get_digital(DIGITAL_X) ? 1.0f : 0.75f);
 
 		// add deadzone to controller analogs
 		if (abs(turnPower) < deadzone) turnPower = 0;
 		if (abs(forwardPower) < deadzone) forwardPower = 0;
  
-		if (turnPower != 0 || forwardPower != 0)
+		if (turnPower != 0
+			 || forwardPower != 0)
 		{
 			rightMotors.move((turnPower - forwardPower));
 			leftMotors.move((turnPower + forwardPower));
@@ -50,12 +52,16 @@ template<typename T> void drive(T &controller) {
 			wings.toggle();
 		}
 
+		if (controller.get_digital_new_press(DIGITAL_B)) {
+			descorer.toggle();
+		}
+
 		if (controller.get_digital(DIGITAL_R1)) {
 			intakeMotor.move(-127);
 			lowerRoller.move(127);
 			upperRoller.move(-127);
 		} else if (controller.get_digital(DIGITAL_R2)) {
-			intakeMotor.move(-127);
+			intakeMotor.move(-77);
 			lowerRoller.move(127);
 			upperRoller.move(127);
 		} else if (controller.get_digital(DIGITAL_L2)) {
@@ -95,13 +101,13 @@ template<typename T> void drive(T &controller) {
 void initialize() {
 	// create a gif of tenna (from deltarune) spinning around
 	// reasoning: silly
-	init_tenna();
+	//init_tenna();
 
-	gif_img = lv_image_create(lv_screen_active());
+	//gif_img = lv_image_create(lv_screen_active());
 
-	lv_obj_center(gif_img);
+	//lv_obj_center(gif_img);
 
-	lv_timer_create(update_gif, 200, nullptr);
+	//lv_timer_create(update_gif, 200, nullptr);
 
 	// set the proper brake mode types for the motors
 	leftMotors.set_brake_mode_all(E_MOTOR_BRAKE_HOLD);
@@ -113,12 +119,7 @@ void initialize() {
  * the VEX Competition Switch, following either autonomous or opcontrol. When
  * the robot is enabled, this task will exit.
  */
-void disabled() {
-	leftMotors.set_brake_mode_all(E_MOTOR_BRAKE_COAST);
-	rightMotors.set_brake_mode_all(E_MOTOR_BRAKE_COAST);
-
-	stop_recording();
-}
+void disabled() {}
 
 /**
  * Runs after initialize(), and before autonomous when connected to the Field
@@ -143,7 +144,12 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	drive(*begin_playback("auton_12-12-25_right_modified"));
+	//drive(*begin_playback("auton_1-31-26_left"));
+	leftMotors.move(100);
+	rightMotors.move(-100);
+	delay(500);
+	leftMotors.brake();
+	rightMotors.brake();
 }
 
 /**
@@ -161,7 +167,7 @@ void autonomous() {
  */
 void opcontrol() {
 	#ifdef RECORDING
-		start_recording("auton_12-12-25_right", 20, nullptr);
+		start_recording("auton_1-31-26_left", 20, nullptr);
 	#endif
 	drive(controllerMaster);
 }

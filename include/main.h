@@ -69,7 +69,8 @@ Motor lowerRoller(1);
 
 Controller controllerMaster(CONTROLLER_MASTER);
 
-adi::Pneumatics wings('a', false);
+adi::Pneumatics wings('e', false);
+adi::Pneumatics descorer('b', false);
 
 int32_t deadzone = 3;
 
